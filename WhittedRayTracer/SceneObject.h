@@ -16,7 +16,7 @@ public:
 	vec3 diffuseColor;
 	float specular;
 
-	SceneObject() : materialType(DIFFUSE_AND_GLOSSY), ior(1.3), kd(0.8), ks(0.2), diffuseColor(0.2), specular(25) {}
+	SceneObject();
 
 	bool intersect(const vec3 &, const vec3 &, float &, int &, vec2 &);
 	void getSurfaceProperties(const vec3 &, const vec3 &, const int &, const vec2 &, vec3 &, vec2 &);

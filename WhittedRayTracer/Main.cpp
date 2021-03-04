@@ -1,6 +1,6 @@
 //Other Classes
-#include "Application.h"
 #include "SceneObject.h"
+#include "SceneLight.h"
 
 //Libraries
 #include <stdio.h>
@@ -16,8 +16,17 @@
 
 using namespace std;
 
+//Defines the environment objects and lights
+void defineScene() {
+	printf("Scene Defined Successfully");
+}
 
 //Runs on startup
 int main() {
-	vector<SceneObject *> sceneObjs;
+	printf("Is Running");
+
+	defineScene();
+
+	exit(0);
 }
+
