@@ -21,4 +21,5 @@ public:
 	bool intersect(const vec3 &, const vec3 &, float &, int &, vec2 &);
 	void getSurfaceProperties(const vec3 &, const vec3 &, const int &, const vec2 &, vec3 &, vec2 &);
 	vec3 evalDiffuseColor(const vec2 &) { return diffuseColor; }
+	bool solveQuad(const float &a, const float &b, const float &c, float &x0, float &x1);
 };
