@@ -133,6 +133,7 @@
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="SceneLight.cpp" />
     <ClCompile Include="SceneObject.cpp" />
+    <ClCompile Include="ScenePlane.cpp" />
     <ClCompile Include="SphereObj.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -140,6 +141,7 @@
     <ClInclude Include="Ray.h" />
     <ClInclude Include="SceneLight.h" />
     <ClInclude Include="SceneObject.h" />
+    <ClInclude Include="ScenePlane.h" />
     <ClInclude Include="SphereObj.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
