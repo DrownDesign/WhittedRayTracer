@@ -195,7 +195,7 @@ void render() {
 			float y = (1 - 2 * (j + 0.5f / options.height) * scale);
 			vec3 direction = normalize(vec3(x, y, -1));
 			pixel = castRay(orig, direction, 0);
-			frameBuffer.at(i) = pixel;
+			frameBuffer.push_back(pixel);
 			index++;
 		}
 	}
