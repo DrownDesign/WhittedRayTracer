@@ -8,12 +8,13 @@ using namespace std;
 
 class ScenePlane : public SceneObject
 {
+public:
 	vector<vec3> vertices;
 	int numTris;
 	vector<int> indices;
 	vector<vec2> uvCoords;
 
-	ScenePlane(vec3 verts, int vertIndices, int numTriangles, vec2 uvs);
+	ScenePlane(vector<vec3> verts, vector<int> vertIndices, int numTriangles, vector<vec2> uvs);
 
 	bool rayTriangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec3 origin, vec3 direction, float tnear, float u, float v) const;
 

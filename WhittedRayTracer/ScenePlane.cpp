@@ -12,7 +12,7 @@
 #include <cmath>
 
 //This may be full of errors. Double check when running
-ScenePlane::ScenePlane(vec3 verts, int vertIndex, int numTriangles, vec2 uvs) 
+ScenePlane::ScenePlane(vector<vec3> verts, vector<int> vertIndex, int numTriangles, vector<vec2> uvs) 
 {
 	vertices.clear();
 	indices.clear();
@@ -22,18 +22,19 @@ ScenePlane::ScenePlane(vec3 verts, int vertIndex, int numTriangles, vec2 uvs)
 
 	for (int i = 0; i < numTriangles * 3; i++) {
 		
-		if (vertIndex > maxIndex) {
-			maxIndex = vertIndex;
+		if (vertIndex.at(i) > maxIndex) {
+			maxIndex = vertIndex.at(i);
 		}
 		
 		maxIndex += 1;
-		vertices.push_back(verts);
-		indices.push_back(vertIndex);
+		vertices = verts;
+		indices = vertIndex;
 		numTris = numTriangles;
-		uvCoords.push_back(uvs);
+		uvCoords = uvs;
 
 	}
 }
+
 bool ScenePlane::interstect(vec3 origin, vec3 direction, float tnear, int index, vec2 uv) const
 {
 	bool intersect = false;
