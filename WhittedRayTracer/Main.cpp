@@ -156,10 +156,25 @@ vec3 castRay(vec3 orig, vec3 dir, int depth, bool test = false) {
 			}
 			default: {
 				vec3 lightAmt(0), specular(0);
+				vec3 shadowPointOrig = (dot(dir, norm) < 0) ? intersection + norm * options.bias : intersection - norm * options.bias;
+
+				for (int i = 0; i < sceneLights.size(); i++) {
+					vec3 lightDir = sceneLights.at(i).pos - intersection;
+					float lightDist2 = dot(lightDir, lightDir);
+					lightDir = normalize(lightDir);
+					float LdotN = max(0.f, dot(lightDir, norm));
+					SceneObject *shadowHitObj = nullptr;
+					float tNearShadow = INFINITY;
+					bool inShadow = trace(shadowPointOrig, lightDir, tNearShadow, index, uv, shadowHitObj) && tNearShadow * tNearShadow < lightDist2;
+					lightAmt += (1 - inShadow) * sceneLights.at(i).intensity.x * LdotN;
+					vec3 reflectionDir = reflect(-lightDir, norm);
+					specular += powf(max(0.f, -dot(reflectionDir, dir)), hitObj->specular) * sceneLights.at(i).intensity;
+					hitColor = lightAmt * hitObj->evalDiffuseColor(st) * hitObj->kd + specular * hitObj->ks;
+					break;
+				}
 			}
 		}
 	}
-
 
 	return hitColor;
 }
