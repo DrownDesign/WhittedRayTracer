@@ -21,37 +21,36 @@ using namespace glm;
 
 const float INFINTY = numeric_limits<float>::max();
 
-vector<SceneObject> sceneObjs;
-vector<SceneLight> sceneLights;
+vector<unique_ptr<SceneObject>> sceneObjs;
+vector<unique_ptr<SceneLight>> sceneLights;
 
 //Defines the environment objects and lights
 void defineScene() {
 
-
 	//Sphere 1 properties
-	SphereObj sph1 = SphereObj(vec3(-1, 0, -12), 2);
-	sph1.materialType = DIFFUSE_AND_GLOSSY;
-	sph1.diffuseColor = vec3(0.6, 0.7, 0.8);
+	SphereObj *sph1 = new SphereObj(vec3(-1, 0, -12), 2);
+	sph1->materialType = DIFFUSE_AND_GLOSSY;
+	sph1->diffuseColor = vec3(0.6, 0.7, 0.8);
 
 	//Sphere 2 properties
-	SphereObj sph2 = SphereObj(vec3(0.6, 0.7, 0.8), 1.5);
-	sph2.materialType = REFLECTION_AND_REFRACTION;
-	sph2.ior = 1.5;
+	SphereObj *sph2 = new SphereObj(vec3(0.6, 0.7, 0.8), 1.5);
+	sph2->materialType = REFLECTION_AND_REFRACTION;
+	sph2->ior = 1.5;
 
-	sceneObjs.push_back(SphereObj(sph1));
-	sceneObjs.push_back(SphereObj(sph2));
+	sceneObjs.push_back(unique_ptr<SphereObj>(sph1));
+	sceneObjs.push_back(unique_ptr<SphereObj>(sph2));
 
 	//Define plane
 	vector<vec3> vertices{ vec3(-5, -3, -6), vec3(5,-3,-6), vec3(5,-3,-16), vec3(-5,-3,-16) };
 	vector<int> indices{ 0 , 1 , 3 , 1 , 2 , 3 };
 	vector<vec2> uvs{ {0,0}, {1,0}, {1,1}, {0,1} };
-	ScenePlane plane = ScenePlane(vertices, indices, 2, uvs);
-	plane.materialType = DIFFUSE_AND_GLOSSY;
+	ScenePlane *plane = new ScenePlane(vertices, indices, 2, uvs);
+	plane->materialType = DIFFUSE_AND_GLOSSY;
 
-	sceneObjs.push_back(ScenePlane(plane));
+	sceneObjs.push_back(unique_ptr<ScenePlane>(plane));
 
-	sceneLights.push_back(SceneLight(vec3(-20, 70, 20), vec3(0.5)));
-	sceneLights.push_back(SceneLight(vec3(-20, 70, 20), vec3(0.5)));
+	sceneLights.push_back(unique_ptr<SceneLight>(new SceneLight(vec3(-20, 70, 20), vec3(0.5))));
+	sceneLights.push_back(unique_ptr<SceneLight>(new SceneLight(vec3(-20, 70, 20), vec3(0.5))));
 
 	printf("Scene Defined Successfully\n");
 }
@@ -76,22 +75,27 @@ void setOptions() {
 	printf("Options Set\n");
 }
 
-bool trace(vec3 orig, vec3 dir, float &tNear, int &index, vec2 uv, SceneObject *hitObj) {
+bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObject **hitObj) {
+
 	for (int i = 0; i < sceneObjs.size(); i++) {
 		
 		float tNearI = INFINITY;
 		int indexI;
 		vec2 uvI;
 		
-		if (sceneObjs.at(i).intersect(orig, dir, tNearI, indexI, uvI) && tNearI < tNear) {
-			*hitObj = sceneObjs.at(i);
+		if (sceneObjs[i]->intersect(orig, dir, tNearI, indexI, uvI) && tNearI < tNear) {
+			*hitObj = sceneObjs[i].get();
 			tNear = tNearI;
 			index = indexI;
 			uv = uvI;
 		}
 	}
+	
+	bool hit = *hitObj != nullptr;
 
-	return (hitObj != nullptr);
+	//Prints if an object is hit
+	//printf(hit ? "Hit = true\n" : "Hit = false\n");
+	return (hit);
 }
 
 void fresnel(vec3 &dir, vec3 &norm, float &ior, float &kr) {
@@ -113,7 +117,7 @@ void fresnel(vec3 &dir, vec3 &norm, float &ior, float &kr) {
 	}
 }
 
-vec3 castRay(vec3 orig, vec3 dir, int depth, bool test = false) {
+vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 	
 	if (depth > options.maxDepth) {
 		return options.backgroundColor;
@@ -124,7 +128,8 @@ vec3 castRay(vec3 orig, vec3 dir, int depth, bool test = false) {
 	vec2 uv(0);
 	int index = 0;
 	SceneObject *hitObj = nullptr;
-	if (trace(orig, dir, tnear, index, uv, hitObj)) {
+	if (trace(orig, dir, tnear, index, uv, &hitObj)) {
+		//printf("Index: %d\n", index);
 		vec3 intersection = orig + dir * tnear;
 		vec3 norm;
 		vec2 st;
@@ -159,16 +164,16 @@ vec3 castRay(vec3 orig, vec3 dir, int depth, bool test = false) {
 				vec3 shadowPointOrig = (dot(dir, norm) < 0) ? intersection + norm * options.bias : intersection - norm * options.bias;
 
 				for (int i = 0; i < sceneLights.size(); i++) {
-					vec3 lightDir = sceneLights.at(i).pos - intersection;
+					vec3 lightDir = sceneLights.at(i)->pos - intersection;
 					float lightDist2 = dot(lightDir, lightDir);
 					lightDir = normalize(lightDir);
 					float LdotN = max(0.f, dot(lightDir, norm));
 					SceneObject *shadowHitObj = nullptr;
 					float tNearShadow = INFINITY;
-					bool inShadow = trace(shadowPointOrig, lightDir, tNearShadow, index, uv, shadowHitObj) && tNearShadow * tNearShadow < lightDist2;
-					lightAmt += (1 - inShadow) * sceneLights.at(i).intensity.x * LdotN;
+					bool inShadow = trace(shadowPointOrig, lightDir, tNearShadow, index, uv, &shadowHitObj) && tNearShadow * tNearShadow < lightDist2;
+					lightAmt += (1 - inShadow) * sceneLights.at(i)->intensity.x * LdotN;
 					vec3 reflectionDir = reflect(-lightDir, norm);
-					specular += powf(max(0.f, -dot(reflectionDir, dir)), hitObj->specular) * sceneLights.at(i).intensity;
+					specular += powf(max(0.f, -dot(reflectionDir, dir)), hitObj->specular) * sceneLights.at(i)->intensity;
 					hitColor = lightAmt * hitObj->evalDiffuseColor(st) * hitObj->kd + specular * hitObj->ks;
 					break;
 				}
@@ -176,6 +181,8 @@ vec3 castRay(vec3 orig, vec3 dir, int depth, bool test = false) {
 		}
 	}
 
+	//Prints color
+	//printf("%d, %d, %d\n" , hitColor.x, hitColor.y, hitColor.z);
 	return hitColor;
 }
 

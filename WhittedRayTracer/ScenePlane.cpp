@@ -35,7 +35,7 @@ ScenePlane::ScenePlane(vector<vec3> verts, vector<int> vertIndex, int numTriangl
 	}
 }
 
-bool ScenePlane::interstect(vec3 origin, vec3 direction, float tnear, int index, vec2 uv) const
+bool ScenePlane::intersect(const vec3 &orig, const vec3 &dir, float &tnear, int &index, vec2 &uv) const 
 {
 	bool intersect = false;
 
@@ -46,7 +46,7 @@ bool ScenePlane::interstect(vec3 origin, vec3 direction, float tnear, int index,
 		vec3 v2 = vertices[indices[i * 3 + 2]];
 		float t = 0, u = 0, v = 0;
 
-		if (rayTriangleIntersect(v0, v1, v2, origin, direction, t, u ,v) && t < tnear) {
+		if (rayTriangleIntersect(v0, v1, v2, orig, dir, t, u ,v) && t < tnear) {
 			tnear = t;
 			uv.x = u;
 			uv.y = v;
@@ -85,7 +85,7 @@ bool ScenePlane::rayTriangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec3 origin, ve
 	return true;
 };
 
-void ScenePlane::getSurfaceProperties(vec3 p, vec3 i, int index, vec2 uv, vec3 n, vec2 st) const
+void ScenePlane::getSurfaceProperties(const vec3 &p, const vec3 &i, const int &index, const vec2 &uv, vec3 &n, vec2 &st) const
 {
 	vec3 v0 = vertices[indices[index * 3]];
 	vec3 v1 = vertices[indices[index * 3 + 1]];
@@ -100,6 +100,7 @@ void ScenePlane::getSurfaceProperties(vec3 p, vec3 i, int index, vec2 uv, vec3 n
 	vec2 st2 = uvCoords[indices[index * 3 + 2]];
 	st = st0 * (1 - uv.x - uv.y) + st1 * uv.x + st2 * uv.y;
 }
+
 vec3 ScenePlane::evalDiffuse(vec2 st) const
 {
 	float scale = .5;
