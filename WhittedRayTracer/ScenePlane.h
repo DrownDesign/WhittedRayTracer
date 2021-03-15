@@ -16,7 +16,7 @@ public:
 
 	ScenePlane(vector<vec3> verts, vector<int> vertIndices, int numTriangles, vector<vec2> uvs);
 
-	bool rayTriangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec3 origin, vec3 direction, float tnear, float u, float v) const;
+	bool rayTriangleIntersect(const vec3 &v0, const vec3 &v1, const vec3 &v2, const vec3 &origin, const vec3 &direction, float &tnear, float &u, float &v) const;
 
 	//Is the ray intersecting with the plane
 	bool intersect(const vec3 &orig, const vec3 &dir, float &tnear, int &index, vec2 &uv) const;

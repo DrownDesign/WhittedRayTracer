@@ -41,9 +41,9 @@ bool ScenePlane::intersect(const vec3 &orig, const vec3 &dir, float &tnear, int 
 
 	for (int i = 0; i < numTris; i++) {
 		//Double check indices logic when debugging.
-		vec3 v0 = vertices[indices[i * 3]];
-		vec3 v1 = vertices[indices[i * 3 + 1]];
-		vec3 v2 = vertices[indices[i * 3 + 2]];
+		const vec3 &v0 = vertices[indices[i * 3]];
+		const vec3 &v1 = vertices[indices[i * 3 + 1]];
+		const vec3 &v2 = vertices[indices[i * 3 + 2]];
 		float t = 0, u = 0, v = 0;
 
 		if (rayTriangleIntersect(v0, v1, v2, orig, dir, t, u ,v) && t < tnear) {
@@ -52,13 +52,14 @@ bool ScenePlane::intersect(const vec3 &orig, const vec3 &dir, float &tnear, int 
 			uv.y = v;
 			index = i;
 			intersect |= true;
+			//printf("returned true as plane\n");
 		}
 	}
 
 	return intersect;
 }
 
-bool ScenePlane::rayTriangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec3 origin, vec3 direction, float tnear, float u, float v) const {
+bool ScenePlane::rayTriangleIntersect(const vec3 &v0, const vec3 &v1, const vec3 &v2, const vec3 &origin, const vec3 &direction, float &tnear, float &u, float &v) const {
 	//Define Edges
 	vec3 edge1 = v1 - v0;
 	vec3 edge2 = v2 - v0;
@@ -103,8 +104,9 @@ void ScenePlane::getSurfaceProperties(const vec3 &p, const vec3 &i, const int &i
 
 vec3 ScenePlane::evalDiffuse(vec2 st) const
 {
-	float scale = .5;
+	float scale = 5;
 	float pattern = (fmodf(st.x * scale, 1) > 0.5) ^ (fmodf(st.y * scale, 1) > 0.5);
 
+	//magic numbers from https://www.scratchapixel.com/code.php?id=8&origin=/lessons/3d-basic-rendering/ray-tracing-overview
 	return mix(vec3(0.815,0.235, 0.031), vec3(0.937, 0.937, 0.231), pattern);
 };

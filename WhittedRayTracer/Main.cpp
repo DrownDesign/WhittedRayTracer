@@ -33,7 +33,7 @@ void defineScene() {
 	sph1->diffuseColor = vec3(0.6, 0.7, 0.8);
 
 	//Sphere 2 properties
-	SphereObj *sph2 = new SphereObj(vec3(0.6, 0.7, 0.8), 1.5);
+	SphereObj *sph2 = new SphereObj(vec3(0.5, -0.5, -8), 1.5);
 	sph2->materialType = REFLECTION_AND_REFRACTION;
 	sph2->ior = 1.5;
 
@@ -50,7 +50,7 @@ void defineScene() {
 	sceneObjs.push_back(unique_ptr<ScenePlane>(plane));
 
 	sceneLights.push_back(unique_ptr<SceneLight>(new SceneLight(vec3(-20, 70, 20), vec3(0.5))));
-	sceneLights.push_back(unique_ptr<SceneLight>(new SceneLight(vec3(-20, 70, 20), vec3(0.5))));
+	sceneLights.push_back(unique_ptr<SceneLight>(new SceneLight(vec3(30, 50, -12), vec3(1))));
 
 	printf("Scene Defined Successfully\n");
 }
@@ -65,17 +65,19 @@ Options options;
 
 void setOptions() {
 
-	options.width = 640;
-	options.height = 480;
+	options.width = 1920;
+	options.height = 1080;
 	options.fov = 90;
-	options.backgroundColor = vec3(0);
+	options.backgroundColor = vec3(0.235294, 0.67451, 0.843137);
 	options.maxDepth = 5;
-	options.bias = 0.00001f;
+	options.bias = 0.00001;
 
 	printf("Options Set\n");
 }
 
 bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObject **hitObj) {
+
+	*hitObj = nullptr;
 
 	for (int i = 0; i < sceneObjs.size(); i++) {
 		
@@ -99,8 +101,7 @@ bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObjec
 }
 
 void fresnel(vec3 &dir, vec3 &norm, float &ior, float &kr) {
-	//keep an eye on the int conversion. might be dodge
-	float cosi = clamp(-1, 1, (int)dot(dir, norm));
+	float cosi = clamp(-1.f, 1.f, dot(dir, norm));
 	float etai = 1, etat = ior;
 	if (cosi > 0) { swap(etai, etat); }
 	
@@ -125,7 +126,7 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 	
 	vec3 hitColor = options.backgroundColor;
 	float tnear = INFINITY;
-	vec2 uv(0);
+	vec2 uv;
 	int index = 0;
 	SceneObject *hitObj = nullptr;
 	if (trace(orig, dir, tnear, index, uv, &hitObj)) {
@@ -163,7 +164,7 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 				vec3 lightAmt(0), specular(0);
 				vec3 shadowPointOrig = (dot(dir, norm) < 0) ? intersection + norm * options.bias : intersection - norm * options.bias;
 
-				for (int i = 0; i < sceneLights.size(); i++) {
+				for (int i = 0; i < sceneLights.size(); ++i) {
 					vec3 lightDir = sceneLights.at(i)->pos - intersection;
 					float lightDist2 = dot(lightDir, lightDir);
 					lightDir = normalize(lightDir);
@@ -190,34 +191,31 @@ void render() {
 	vector<vec3> frameBuffer;
 	vec3 pixel;
 
-	//double check this line
-	float scale = tan(radians(options.fov * 0.5f));
+	float scale = tan(radians(options.fov * 0.5));
 	float imageAspectRatio = options.width / (float)options.height;
 	vec3 orig(0);
 
-	int index = 0;
 	for (int j = 0; j < options.height; j++) {
 		for (int i = 0; i < options.width; i++) {
-			float x = (2 * (i + 0.5f) / options.width - 1) * imageAspectRatio * scale;
-			float y = (1 - 2 * (j + 0.5f / options.height) * scale);
+			float x = (2 * (i + 0.5) / (float)options.width - 1) * imageAspectRatio * scale;
+			float y = (1 - 2 * (j + 0.5) / options.height) * scale;
 			vec3 direction = normalize(vec3(x, y, -1));
 			pixel = castRay(orig, direction, 0);
 			frameBuffer.push_back(pixel);
-			index++;
+			//printf("%d, %d, %d\n", pixel.x, pixel.y, pixel.z);
 		}
 	}
 
 	//Save framebuffer to file
 	ofstream ofs;
-
-	//Maybe change the file format?
 	ofs.open("./out.ppm");
 
 	ofs << "P6\n" << options.width << " " << options.height << "\n255\n";
-	for (int i = 0; i < options.height*options.width; i++) {
-		char r = 255 * clamp(0, 1, (int)frameBuffer.at(i).x);
-		char g = 255 * clamp(0, 1, (int)frameBuffer.at(i).y);
-		char b = 255 * clamp(0, 1, (int)frameBuffer.at(i).z);
+	for (int i = 0; i < frameBuffer.size(); i++) {
+		char r = (255 * clamp(0.f, 1.f, frameBuffer.at(i).x));
+		char g = (255 * clamp(0.f, 1.f, frameBuffer.at(i).y));
+		char b = (255 * clamp(0.f, 1.f, frameBuffer.at(i).z));
+		//printf("X:%f, Y:%f, Z:%f\n Pixel R:%f, G:%f, B:%f\n", frameBuffer.at(i).x, frameBuffer.at(i).y, frameBuffer.at(i).z, r, g, b);
 		ofs << r << g << b;
 	}
 

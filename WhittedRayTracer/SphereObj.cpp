@@ -1,4 +1,5 @@
 #include "SphereObj.h"
+#include <stdio.h>
 
 SphereObj::SphereObj(const vec3 & c, const float & r) : center(c), rad(r), rad2(r*r) {}
 
@@ -15,8 +16,10 @@ bool SphereObj::intersect(const vec3 &p1, const vec3 &dir, float &tnear, int &in
 
 	if (t0 < 0) t0 = t1;
 	if (t0 < 0) return false;
+	
 	tnear = t0;
 
+	//printf("returned true as sphere\n");
 	return true;
 }
 
@@ -25,15 +28,15 @@ void SphereObj::getSurfaceProperties(const vec3 &p, const vec3 &i, const int &in
 	n = normalize(p - center); 
 }
 
-bool SphereObj::solveQuad(const float & a, const float & b, const float & c, float & x0, float & x1) const
+bool SphereObj::solveQuad(const float &a, const float &b, const float &c, float &x0, float &x1) const
 {
 	float discr = b * b - 4 * a * c;
 	if (discr < 0) return false;
-	else if (discr == 0) x0 = x1 = -0.5f * b / a;
+	else if (discr == 0) x0 = x1 = -0.5 * b / a;
 	else {
 		float q = (b > 0) ?
-			-0.5f * (b + sqrt(discr)) :
-			-0.5f * (b - sqrt(discr));
+			-0.5 * (b + sqrt(discr)) :
+			-0.5 * (b - sqrt(discr));
 		x0 = q / a;
 		x1 = c / q;
 	}
