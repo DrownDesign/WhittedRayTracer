@@ -12,9 +12,9 @@ public:
 	vector<vec3> vertices;
 	int numTris;
 	vector<int> indices;
-	vector<vec2> uvCoords;
+	vector<vec2> stCoords;
 
-	ScenePlane(vector<vec3> verts, vector<int> vertIndices, int numTriangles, vector<vec2> uvs);
+	ScenePlane(vector<vec3> verts, vector<int> vertIndices, int numTriangles, vector<vec2> st);
 
 	bool rayTriangleIntersect(const vec3 &v0, const vec3 &v1, const vec3 &v2, const vec3 &origin, const vec3 &direction, float &tnear, float &u, float &v) const;
 
@@ -26,6 +26,6 @@ public:
 	void getSurfaceProperties(const vec3 &p, const vec3 &i, const int &index, const vec2 &uv, vec3 &n, vec2 &st) const;
 
 	//Evaluate the diffuse color of the given plane
-	vec3 evalDiffuse(vec2 st) const;
+	vec3 evalDiffuseColor(const vec2 &st);
 };
 

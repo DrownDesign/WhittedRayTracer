@@ -12,25 +12,22 @@
 #include <cmath>
 
 //This may be full of errors. Double check when running
-ScenePlane::ScenePlane(vector<vec3> verts, vector<int> vertIndex, int numTriangles, vector<vec2> uvs) 
+ScenePlane::ScenePlane(vector<vec3> verts, vector<int> vertIndex, int numTriangles, vector<vec2> st) 
 {
 	vertices.clear();
 	indices.clear();
-	uvCoords.clear();
+	stCoords.clear();
 
 	int maxIndex = 0;
 
 	for (int i = 0; i < numTriangles * 3; i++) {
 		
-		if (vertIndex.at(i) > maxIndex) {
-			maxIndex = vertIndex.at(i);
-		}
-		
+		if (vertIndex.at(i) > maxIndex)	maxIndex = vertIndex.at(i);
 		maxIndex += 1;
 		vertices = verts;
 		indices = vertIndex;
 		numTris = numTriangles;
-		uvCoords = uvs;
+		stCoords = st;
 
 	}
 }
@@ -96,17 +93,17 @@ void ScenePlane::getSurfaceProperties(const vec3 &p, const vec3 &i, const int &i
 	vec3 edge1 = normalize(v2 - v1);
 	n = normalize(cross(edge0, edge1));
 
-	vec2 st0 = uvCoords[indices[index * 3]];
-	vec2 st1 = uvCoords[indices[index * 3 + 1]];
-	vec2 st2 = uvCoords[indices[index * 3 + 2]];
+	vec2 st0 = stCoords[indices[index * 3]];
+	vec2 st1 = stCoords[indices[index * 3 + 1]];
+	vec2 st2 = stCoords[indices[index * 3 + 2]];
 	st = st0 * (1 - uv.x - uv.y) + st1 * uv.x + st2 * uv.y;
 }
 
-vec3 ScenePlane::evalDiffuse(vec2 st) const
+vec3 ScenePlane::evalDiffuseColor(const vec2 &st)
 {
-	float scale = 5;
-	float pattern = (fmodf(st.x * scale, 1) > 0.5) ^ (fmodf(st.y * scale, 1) > 0.5);
+	float scale = 5.0f;
+	float pattern = (fmodf(st.x * scale, 1) > 0.5f) ^ (fmodf(st.y * scale, 1) > 0.5f);
 
 	//magic numbers from https://www.scratchapixel.com/code.php?id=8&origin=/lessons/3d-basic-rendering/ray-tracing-overview
-	return mix(vec3(0.815,0.235, 0.031), vec3(0.937, 0.937, 0.231), pattern);
+	return mix(vec3(0.815f, 0.235f, 0.031f), vec3(0.937f, 0.937f, 0.231f), pattern);
 };

@@ -3,9 +3,9 @@
 
 SphereObj::SphereObj(const vec3 & c, const float & r) : center(c), rad(r), rad2(r*r) {}
 
-bool SphereObj::intersect(const vec3 &p1, const vec3 &dir, float &tnear, int &index, vec2 &uv) const
+bool SphereObj::intersect(const vec3 &orig, const vec3 &dir, float &tnear, int &index, vec2 &uv) const
 {
-	vec3 L = p1 - center;
+	vec3 L = orig - center;
 	float a = dot(dir, dir);
 	float b = 2 * dot(dir, L);
 	float c = dot(L, L) - rad2;
