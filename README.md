@@ -9,5 +9,3 @@ To run this program you will need to have the glm library included in you extern
 2. Go into your .sln.
 3. Right click Application in the Solution explorer, Select properties.
 4. In directories, select All Configurations, and the in the Include Directories, add the path of the GLM library.
-
-![alt text](./out.ppm)
