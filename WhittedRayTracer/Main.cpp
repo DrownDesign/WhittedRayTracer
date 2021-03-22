@@ -6,15 +6,8 @@
 
 //Libraries
 #include <stdio.h>
-#include <cstdio>
-#include <cstdlib>
-#include <memory>
 #include <vector>
-#include <utility>
-#include <cstdint>
-#include <iostream>
 #include <fstream>
-#include <cmath>
 
 using namespace std;
 using namespace glm;
@@ -25,6 +18,7 @@ vector<unique_ptr<SceneObject>> sceneObjs;
 vector<unique_ptr<SceneLight>> sceneLights;
 
 //Defines the environment objects and lights
+//All magic numbers from: https://www.scratchapixel.com/code.php?id=8&origin=/lessons/3d-basic-rendering/ray-tracing-overview
 void defineScene() {
 
 	//Sphere 1 properties
@@ -37,8 +31,14 @@ void defineScene() {
 	sph2->materialType = REFLECTION_AND_REFRACTION;
 	sph2->ior = 1.5;
 
+	SphereObj *sph3 = new SphereObj(vec3(-2, 1, -7), 1);
+	sph3->materialType = DIFFUSE_AND_GLOSSY;
+	sph3->diffuseColor = vec3(1, 0, 0);
+
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph1));
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph2));
+	sceneObjs.push_back(unique_ptr<SphereObj>(sph3));
+
 
 	//Define plane
 	vector<vec3> vertices{ vec3(-5, -3, -6), vec3(5,-3,-6), vec3(5,-3,-16), vec3(-5,-3,-16) };
@@ -63,6 +63,7 @@ struct Options {
 
 Options options;
 
+//Options for rendering the scene
 void setOptions() {
 
 	options.width = 1920;
@@ -75,6 +76,7 @@ void setOptions() {
 	printf("Options Set\n");
 }
 
+//Trace along the ray's path to determine whether an object is hit
 bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObject **hitObj) {
 
 	*hitObj = nullptr;
@@ -100,6 +102,7 @@ bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObjec
 	return (hit);
 }
 
+//Calculate fresnel for reflection and refraction
 void fresnel(const vec3 &dir, const vec3 &norm, const float &ior, float &kr) {
 	float cosi = clamp(-1.f, 1.f, dot(dir, norm));
 	float etai = 1.0f, etat = ior;
@@ -118,6 +121,7 @@ void fresnel(const vec3 &dir, const vec3 &norm, const float &ior, float &kr) {
 	}
 }
 
+//Calculate snells law for refraction -> glm refract doesnt have the same effect
 vec3 snellRefract(const vec3 &i, const vec3 &N , const float &ior) {
 	float cosi = clamp(-1.f, 1.f, dot(i, N));
 	float etai = 1, etat = ior;
@@ -138,6 +142,7 @@ vec3 snellRefract(const vec3 &i, const vec3 &N , const float &ior) {
 	return tmp;
 }
 
+//Cast a ray into the scene to calculate the colour of the given pixel
 vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 	
 	if (depth > options.maxDepth) {
@@ -217,6 +222,7 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 	return hitColor;
 }
 
+//Render the image based on the options provided (in the options struct)
 void render() {
 	vector<vec3> frameBuffer;
 	vec3 pixel;
@@ -239,7 +245,7 @@ void render() {
 
 	//Save framebuffer to file
 	ofstream ofs;
-	ofs.open("./out.ppm");
+	ofs.open("./WhittedOutput.ppm");
 
 	ofs << "P3\n" << options.width << " " << options.height << "\n255\n";
 
