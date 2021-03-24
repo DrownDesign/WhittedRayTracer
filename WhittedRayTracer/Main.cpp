@@ -260,6 +260,85 @@ void render() {
 	frameBuffer.clear();
 }
 
+void renderAA() {
+	vector<vec3> frameBuffer;
+	vec3 pixel;
+
+	float qWidth = 4 * options.width, qHeight = 4 * options.height;
+
+	float scale = tan(radians(options.fov * 0.5f));
+	float imageAspectRatio = qWidth / (float)qHeight;
+	vec3 orig(0);
+
+	for (int j = 0; j < qHeight; ++j) {
+		for (int i = 0; i < qWidth; ++i) {
+			float x = (2.0f * (i + 0.5f) / (float)qWidth - 1) * imageAspectRatio * scale;
+			float y = (1.0f - 2.0f * (j + 0.5f) / (float)qHeight) * scale;
+			vec3 direction = normalize(vec3(x, y, -1));
+
+			pixel = castRay(orig, direction, 0);
+			frameBuffer.push_back(pixel);
+			printf("%f, %f, %f\n", pixel.x, pixel.y, pixel.z);
+		}
+	}
+
+	vector<vec3> AAImage;
+	int index = 0;
+	for (int i = 0; i < frameBuffer.size() - 2 - qWidth; i+=2, index += 2) {
+
+			vec3 pix1 = frameBuffer.at(i);
+			vec3 pix2 = frameBuffer.at(i + 1);
+			vec3 pix3 = frameBuffer.at(i + qWidth);
+			vec3 pix4 = frameBuffer.at(i + qWidth + 1);
+
+			vec3 newPix = pix1 + pix2 + pix3 + pix4;
+			newPix.x /= 4;
+			newPix.y /= 4;
+			newPix.z /= 4;
+
+			AAImage.push_back(newPix);
+
+			//printf("Framebuffer %i: %f, %f, %f\n", i, frameBuffer.at(i).x, frameBuffer.at(i).y, frameBuffer.at(i).z);
+			//printf("Pixel %i = %f, %f, %f\n", i, newPix.x, newPix.y, newPix.z);
+
+			if (index == qWidth) {
+				i += qWidth;
+				index = 0;
+			}
+	}
+	
+	
+
+	////Save framebuffer to file
+	//ofstream ofs;
+	//ofs.open("./WhittedOutputAA.ppm");
+
+	//ofs << "P3\n" << qWidth << " " << qHeight << "\n255\n";
+
+	//for (int i = 0; i < frameBuffer.size(); i++) {
+	//	int r = (255 * clamp(0.f, 1.f, frameBuffer.at(i).x));
+	//	int g = (255 * clamp(0.f, 1.f, frameBuffer.at(i).y));
+	//	int b = (255 * clamp(0.f, 1.f, frameBuffer.at(i).z));
+	//	ofs << r << " " << g << " " << b << "\n";
+	//}
+
+	//Save framebuffer to file
+	ofstream ofs;
+	ofs.open("./WhittedOutputAA.ppm");
+
+	ofs << "P3\n" << options.width << " " << options.height << "\n255\n";
+
+	for (int i = 0; i < AAImage.size(); i++) {
+		int r = (255 * clamp(0.f, 1.f, AAImage.at(i).x));
+		int g = (255 * clamp(0.f, 1.f, AAImage.at(i).y));
+		int b = (255 * clamp(0.f, 1.f, AAImage.at(i).z));
+		ofs << r << " " << g << " " << b << "\n";
+	}
+
+	ofs.close();
+	frameBuffer.clear();
+}
+
 //Runs on startup
 int main(int argc, char **argv) {
 	printf("Is Running\n");
@@ -268,7 +347,9 @@ int main(int argc, char **argv) {
 
 	setOptions();
 
-	render();
+	//render();
+
+	renderAA();
 
 	exit(0);
 }
