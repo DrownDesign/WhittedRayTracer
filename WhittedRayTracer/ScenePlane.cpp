@@ -1,5 +1,4 @@
 #include "ScenePlane.h"
-#include "Ray.h"
 #include <stdio.h>
 #include <cstdio>
 #include <cstdlib>

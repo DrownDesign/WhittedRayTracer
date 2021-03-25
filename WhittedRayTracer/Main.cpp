@@ -201,7 +201,6 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 					bool inShadow = trace(shadowPointOrig, lightDir, tNearShadow, index, uv, &shadowHitObj) && (tNearShadow * tNearShadow) < lightDist2;
 					lightAmt += (1 - inShadow) * sceneLights.at(i)->intensity.x * LdotN;
 					vec3 reflectionDir = reflect(-lightDir, N);
-					//The specular looks like its working...
 					specular += pow(max(0.f, -dot(reflectionDir, dir)), hitObj->specular) * sceneLights.at(i)->intensity.x;
 				}
 
@@ -248,6 +247,86 @@ void render() {
 		int g = (255 * clamp(0.f, 1.f, frameBuffer.at(i).y));
 		int b = (255 * clamp(0.f, 1.f, frameBuffer.at(i).z));
 		ofs << r << " " << g  << " " << b << "\n";
+	}
+
+	ofs.close();
+	frameBuffer.clear();
+}
+
+void renderAA() {
+	vector<vec3> frameBuffer;
+	vec3 pixel;
+
+	int sampleSize = 4;
+
+	float qWidth = sampleSize * options.width, qHeight = sampleSize * options.height;
+
+	float scale = tan(radians(options.fov * 0.5f));
+	float imageAspectRatio = qWidth / (float)qHeight;
+	vec3 orig(0);
+
+	for (int j = 0; j < qHeight; ++j) {
+		for (int i = 0; i < qWidth; ++i) {
+			float x = (2.0f * (i + 0.5f) / (float)qWidth - 1) * imageAspectRatio * scale;
+			float y = (1.0f - 2.0f * (j + 0.5f) / (float)qHeight) * scale;
+			vec3 direction = normalize(vec3(x, y, -1));
+
+			pixel = castRay(orig, direction, 0);
+			frameBuffer.push_back(pixel);
+			//printf("%f, %f, %f\n", pixel.x, pixel.y, pixel.z);
+		}
+	}
+
+	printf("HQ Rendered\n");
+	printf("Averaging Pixels\n");
+
+	vector<vec3> AAImage;
+	int index = 0;
+	for (int i = 0; i <= frameBuffer.size() - sampleSize; i += sampleSize) { // iterate through all pixels
+		vector<vec3> avePix;
+		for (int x = 0; x < sampleSize; x++) {
+			vec3 p1 = frameBuffer.at(i + x);
+			vec3 p2 = frameBuffer.at(i + x + qWidth);
+			vec3 p3 = frameBuffer.at(i + x + (qWidth * 2));
+			vec3 p4 = frameBuffer.at(i + x + (qWidth * 3));
+
+			avePix.push_back(p1);
+			avePix.push_back(p2);
+			avePix.push_back(p3);
+			avePix.push_back(p4);
+		}
+
+		vec3 newPixel;
+		int count = 0;
+		for (vec3 pix : avePix) {
+			newPixel += pix;
+			count++;
+		}
+
+		newPixel /= count;
+		AAImage.push_back(newPixel);
+		
+		if (index == qWidth - sampleSize) {
+			i += (qWidth * sampleSize);
+			index = 0;
+		}
+		else {
+			index += sampleSize;
+		}
+	}
+	printf("Averaged Pixels\n");
+
+	//Save framebuffer to file
+	ofstream ofs;
+	ofs.open("./WhittedOutputAA.ppm");
+
+	ofs << "P3\n" << options.width << " " << options.height << "\n255\n";
+
+	for (int i = 0; i < AAImage.size(); i++) {
+		int r = (255 * clamp(0.f, 1.f, AAImage.at(i).x));
+		int g = (255 * clamp(0.f, 1.f, AAImage.at(i).y));
+		int b = (255 * clamp(0.f, 1.f, AAImage.at(i).z));
+		ofs << r << " " << g << " " << b << "\n";
 	}
 
 	ofs.close();

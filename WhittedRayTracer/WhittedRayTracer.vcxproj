@@ -75,6 +75,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>D:\408\WhittedRayTracer\WhittedRayTracer\ext;$(IncludePath)</IncludePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>H:\Repos\WhittedRayTracer\WhittedRayTracer\ext;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>H:\Repos\WhittedRayTracer\WhittedRayTracer\ext;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -128,16 +134,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Ray.cpp" />
     <ClCompile Include="SceneLight.cpp" />
     <ClCompile Include="ScenePlane.cpp" />
     <ClCompile Include="SphereObj.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Ray.h" />
     <ClInclude Include="SceneLight.h" />
     <ClInclude Include="SceneObject.h" />
     <ClInclude Include="ScenePlane.h" />
