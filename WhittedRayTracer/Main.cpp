@@ -31,14 +31,13 @@ void defineScene() {
 	sph2->materialType = REFLECTION_AND_REFRACTION;
 	sph2->ior = 1.5;
 
-	SphereObj *sph3 = new SphereObj(vec3(-2, 1, -7), 1);
+	SphereObj *sph3 = new SphereObj(vec3(-2, 0, -5), 1);
 	sph3->materialType = DIFFUSE_AND_GLOSSY;
-	sph3->diffuseColor = vec3(1, 0, 0);
+	sph3->diffuseColor = vec3(0.9, 0, 0);
 
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph1));
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph2));
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph3));
-
 
 	//Define plane
 	vector<vec3> vertices{ vec3(-5, -3, -6), vec3(5,-3,-6), vec3(5,-3,-16), vec3(-5,-3,-16) };
@@ -97,8 +96,6 @@ bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObjec
 	
 	bool hit = *hitObj != nullptr;
 
-	//Prints if an object is hit
-	//printf(hit ? "Hit = true\n" : "Hit = false\n");
 	return (hit);
 }
 
@@ -206,7 +203,6 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 					bool inShadow = trace(shadowPointOrig, lightDir, tNearShadow, index, uv, &shadowHitObj) && (tNearShadow * tNearShadow) < lightDist2;
 					lightAmt += (1 - inShadow) * sceneLights.at(i)->intensity.x * LdotN;
 					vec3 reflectionDir = reflect(-lightDir, N);
-					//The specular looks like its working...
 					specular += pow(max(0.f, -dot(reflectionDir, dir)), hitObj->specular) * sceneLights.at(i)->intensity.x;
 				}
 
@@ -217,14 +213,12 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 		}
 	}
 
-	//Prints color
-	//printf("%f, %f, %f\n" , hitColor.x, hitColor.y, hitColor.z);
 	return hitColor;
 }
 
 //Render the image based on the options provided (in the options struct)
 void render() {
-	vector<vec3> frameBuffer;
+	vector<vec3> finalImage;
 	vec3 pixel;
 
 	float scale = tan(radians(options.fov * 0.5f));
@@ -238,89 +232,59 @@ void render() {
 			vec3 direction = normalize(vec3(x, y, -1));
 			
 			pixel = castRay(orig, direction, 0);
-			frameBuffer.push_back(pixel);
-			//printf("%f, %f, %f\n", pixel.x, pixel.y, pixel.z);
+			finalImage.push_back(pixel);
 		}
 	}
 
 	//Save framebuffer to file
 	ofstream ofs;
-	ofs.open("./WhittedOutput.ppm");
+	ofs.open("./WhittedCore.ppm");
 
 	ofs << "P3\n" << options.width << " " << options.height << "\n255\n";
 
-	for (int i = 0; i < frameBuffer.size(); i++) {
-		int r = (255 * clamp(0.f, 1.f, frameBuffer.at(i).x));
-		int g = (255 * clamp(0.f, 1.f, frameBuffer.at(i).y));
-		int b = (255 * clamp(0.f, 1.f, frameBuffer.at(i).z));
+	for (int i = 0; i < finalImage.size(); i++) {
+		int r = (255 * clamp(0.f, 1.f, finalImage.at(i).x));
+		int g = (255 * clamp(0.f, 1.f, finalImage.at(i).y));
+		int b = (255 * clamp(0.f, 1.f, finalImage.at(i).z));
 		ofs << r << " " << g  << " " << b << "\n";
 	}
 
 	ofs.close();
-	frameBuffer.clear();
+	finalImage.clear();
 }
 
 void renderAA() {
-	vector<vec3> frameBuffer;
-	vec3 pixel;
-
-	float qWidth = 4 * options.width, qHeight = 4 * options.height;
+	vector<vec3> AAImage;
 
 	float scale = tan(radians(options.fov * 0.5f));
-	float imageAspectRatio = qWidth / (float)qHeight;
+	float imageAspectRatio = options.width / (float)options.height;
 	vec3 orig(0);
 
-	for (int j = 0; j < qHeight; ++j) {
-		for (int i = 0; i < qWidth; ++i) {
-			float x = (2.0f * (i + 0.5f) / (float)qWidth - 1) * imageAspectRatio * scale;
-			float y = (1.0f - 2.0f * (j + 0.5f) / (float)qHeight) * scale;
-			vec3 direction = normalize(vec3(x, y, -1));
+	for (int j = 0; j < options.height; ++j) {
+		for (int i = 0; i < options.width; ++i) {
+			vec3 finalPixel;
+			vector<vec3> tempPixels;
+			int count = 0;
+			for (float yIncr = 0.25; yIncr < 1; yIncr += 0.25 ) {
+				for (float xIncr = 0.25; xIncr < 1; xIncr += 0.25) {
+					float x = (2.0f * (i + xIncr) / (float)options.width - 1) * imageAspectRatio * scale;
+					float y = (1.0f - 2.0f * (j + yIncr) / (float)options.height) * scale;
+					vec3 direction = normalize(vec3(x, y, -1));
 
-			pixel = castRay(orig, direction, 0);
-			frameBuffer.push_back(pixel);
-			printf("%f, %f, %f\n", pixel.x, pixel.y, pixel.z);
+					vec3 pix = castRay(orig, direction, 0);
+					tempPixels.push_back(pix);
+					count++;
+				}
+			}
+
+			for (vec3 tmpPix : tempPixels) {
+				finalPixel += tmpPix;
+			}
+			finalPixel /= count;
+
+			AAImage.push_back(finalPixel);
 		}
 	}
-
-	vector<vec3> AAImage;
-	int index = 0;
-	for (int i = 0; i < frameBuffer.size() - 2 - qWidth; i+=2, index += 2) {
-
-			vec3 pix1 = frameBuffer.at(i);
-			vec3 pix2 = frameBuffer.at(i + 1);
-			vec3 pix3 = frameBuffer.at(i + qWidth);
-			vec3 pix4 = frameBuffer.at(i + qWidth + 1);
-
-			vec3 newPix = pix1 + pix2 + pix3 + pix4;
-			newPix.x /= 4;
-			newPix.y /= 4;
-			newPix.z /= 4;
-
-			AAImage.push_back(newPix);
-
-			//printf("Framebuffer %i: %f, %f, %f\n", i, frameBuffer.at(i).x, frameBuffer.at(i).y, frameBuffer.at(i).z);
-			//printf("Pixel %i = %f, %f, %f\n", i, newPix.x, newPix.y, newPix.z);
-
-			if (index == qWidth) {
-				i += qWidth;
-				index = 0;
-			}
-	}
-	
-	
-
-	////Save framebuffer to file
-	//ofstream ofs;
-	//ofs.open("./WhittedOutputAA.ppm");
-
-	//ofs << "P3\n" << qWidth << " " << qHeight << "\n255\n";
-
-	//for (int i = 0; i < frameBuffer.size(); i++) {
-	//	int r = (255 * clamp(0.f, 1.f, frameBuffer.at(i).x));
-	//	int g = (255 * clamp(0.f, 1.f, frameBuffer.at(i).y));
-	//	int b = (255 * clamp(0.f, 1.f, frameBuffer.at(i).z));
-	//	ofs << r << " " << g << " " << b << "\n";
-	//}
 
 	//Save framebuffer to file
 	ofstream ofs;
@@ -336,7 +300,7 @@ void renderAA() {
 	}
 
 	ofs.close();
-	frameBuffer.clear();
+	AAImage.clear();
 }
 
 //Runs on startup
@@ -347,10 +311,15 @@ int main(int argc, char **argv) {
 
 	setOptions();
 
-	//render();
+	printf("Rendering\n");
 
 	renderAA();
 
+	printf("AA complete\n");
+
+	render();
+
+	printf("Core complete\n");
 	exit(0);
 }
 
