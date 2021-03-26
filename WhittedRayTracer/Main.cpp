@@ -37,8 +37,13 @@ void defineScene() {
 	sph2->materialType = REFLECTION_AND_REFRACTION;
 	sph2->ior = 1.5;
 
+	SphereObj *sph3 = new SphereObj(vec3(-2, 0, -5), 1);
+	sph3->materialType = DIFFUSE_AND_GLOSSY;
+	sph3->diffuseColor = vec3(0.9, 0, 0);
+
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph1));
 	sceneObjs.push_back(unique_ptr<SphereObj>(sph2));
+	sceneObjs.push_back(unique_ptr<SphereObj>(sph3));
 
 	//Define plane
 	vector<vec3> vertices{ vec3(-5, -3, -6), vec3(5,-3,-6), vec3(5,-3,-16), vec3(-5,-3,-16) };
@@ -95,8 +100,6 @@ bool trace(vec3 &orig, vec3 &dir, float &tNear, int &index, vec2 &uv, SceneObjec
 	
 	bool hit = *hitObj != nullptr;
 
-	//Prints if an object is hit
-	//printf(hit ? "Hit = true\n" : "Hit = false\n");
 	return (hit);
 }
 
@@ -211,13 +214,11 @@ vec3 castRay(vec3 &orig, vec3 &dir, int depth, bool test = false) {
 		}
 	}
 
-	//Prints color
-	//printf("%f, %f, %f\n" , hitColor.x, hitColor.y, hitColor.z);
 	return hitColor;
 }
 
 void render() {
-	vector<vec3> frameBuffer;
+	vector<vec3> finalImage;
 	vec3 pixel;
 
 	float scale = tan(radians(options.fov * 0.5f));
@@ -231,90 +232,59 @@ void render() {
 			vec3 direction = normalize(vec3(x, y, -1));
 			
 			pixel = castRay(orig, direction, 0);
-			frameBuffer.push_back(pixel);
-			//printf("%f, %f, %f\n", pixel.x, pixel.y, pixel.z);
+			finalImage.push_back(pixel);
 		}
 	}
 
 	//Save framebuffer to file
 	ofstream ofs;
-	ofs.open("./out.ppm");
+	ofs.open("./WhittedCore.ppm");
 
 	ofs << "P3\n" << options.width << " " << options.height << "\n255\n";
 
-	for (int i = 0; i < frameBuffer.size(); i++) {
-		int r = (255 * clamp(0.f, 1.f, frameBuffer.at(i).x));
-		int g = (255 * clamp(0.f, 1.f, frameBuffer.at(i).y));
-		int b = (255 * clamp(0.f, 1.f, frameBuffer.at(i).z));
+	for (int i = 0; i < finalImage.size(); i++) {
+		int r = (255 * clamp(0.f, 1.f, finalImage.at(i).x));
+		int g = (255 * clamp(0.f, 1.f, finalImage.at(i).y));
+		int b = (255 * clamp(0.f, 1.f, finalImage.at(i).z));
 		ofs << r << " " << g  << " " << b << "\n";
 	}
 
 	ofs.close();
-	frameBuffer.clear();
+	finalImage.clear();
 }
 
 void renderAA() {
-	vector<vec3> frameBuffer;
-	vec3 pixel;
-
-	int sampleSize = 4;
-
-	float qWidth = sampleSize * options.width, qHeight = sampleSize * options.height;
+	vector<vec3> AAImage;
 
 	float scale = tan(radians(options.fov * 0.5f));
-	float imageAspectRatio = qWidth / (float)qHeight;
+	float imageAspectRatio = options.width / (float)options.height;
 	vec3 orig(0);
 
-	for (int j = 0; j < qHeight; ++j) {
-		for (int i = 0; i < qWidth; ++i) {
-			float x = (2.0f * (i + 0.5f) / (float)qWidth - 1) * imageAspectRatio * scale;
-			float y = (1.0f - 2.0f * (j + 0.5f) / (float)qHeight) * scale;
-			vec3 direction = normalize(vec3(x, y, -1));
+	for (int j = 0; j < options.height; ++j) {
+		for (int i = 0; i < options.width; ++i) {
+			vec3 finalPixel;
+			vector<vec3> tempPixels;
+			int count = 0;
+			for (float yIncr = 0.25; yIncr < 1; yIncr += 0.25 ) {
+				for (float xIncr = 0.25; xIncr < 1; xIncr += 0.25) {
+					float x = (2.0f * (i + xIncr) / (float)options.width - 1) * imageAspectRatio * scale;
+					float y = (1.0f - 2.0f * (j + yIncr) / (float)options.height) * scale;
+					vec3 direction = normalize(vec3(x, y, -1));
 
-			pixel = castRay(orig, direction, 0);
-			frameBuffer.push_back(pixel);
-			//printf("%f, %f, %f\n", pixel.x, pixel.y, pixel.z);
+					vec3 pix = castRay(orig, direction, 0);
+					tempPixels.push_back(pix);
+					count++;
+				}
+			}
+
+			for (vec3 tmpPix : tempPixels) {
+				finalPixel += tmpPix;
+			}
+			finalPixel /= count;
+
+			AAImage.push_back(finalPixel);
 		}
 	}
-
-	printf("HQ Rendered\n");
-	printf("Averaging Pixels\n");
-
-	vector<vec3> AAImage;
-	int index = 0;
-	for (int i = 0; i <= frameBuffer.size() - sampleSize; i += sampleSize) { // iterate through all pixels
-		vector<vec3> avePix;
-		for (int x = 0; x < sampleSize; x++) {
-			vec3 p1 = frameBuffer.at(i + x);
-			vec3 p2 = frameBuffer.at(i + x + qWidth);
-			vec3 p3 = frameBuffer.at(i + x + (qWidth * 2));
-			vec3 p4 = frameBuffer.at(i + x + (qWidth * 3));
-
-			avePix.push_back(p1);
-			avePix.push_back(p2);
-			avePix.push_back(p3);
-			avePix.push_back(p4);
-		}
-
-		vec3 newPixel;
-		int count = 0;
-		for (vec3 pix : avePix) {
-			newPixel += pix;
-			count++;
-		}
-
-		newPixel /= count;
-		AAImage.push_back(newPixel);
-		
-		if (index == qWidth - sampleSize) {
-			i += (qWidth * sampleSize);
-			index = 0;
-		}
-		else {
-			index += sampleSize;
-		}
-	}
-	printf("Averaged Pixels\n");
 
 	//Save framebuffer to file
 	ofstream ofs;
@@ -330,7 +300,7 @@ void renderAA() {
 	}
 
 	ofs.close();
-	frameBuffer.clear();
+	AAImage.clear();
 }
 
 //Runs on startup
@@ -341,8 +311,15 @@ int main(int argc, char **argv) {
 
 	setOptions();
 
+	printf("Rendering\n");
+
+	renderAA();
+
+	printf("AA complete\n");
+
 	render();
 
+	printf("Core complete\n");
 	exit(0);
 }
 
